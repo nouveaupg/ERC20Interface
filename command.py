@@ -56,6 +56,7 @@ class CommandModule:
                 try:
                     urlopen(req, context=self.ssl_ctx)
                     logger.info("Node information updated successfully.")
+                    break
                 except URLError as err:
                     logger.error("Error from Node API update endpoint: {0}".format(err))
                     error_delay = config['polling_interval']
@@ -102,6 +103,7 @@ class CommandModule:
                 if 'get_block_data' in command_data:
                     command_id = command_data["command_id"]
                     block_number = command_data["get_block_data"]
+                    self.logger.info("Received get_block_data: {0} command_id: {1}".format(block_number, command_id))
                     self._get_block_data(block_number, command_id)
             elif response_data["result"] == "Error":
                 self.logger.error("Node API Error: {0}".format(response_data["error_message"]))
