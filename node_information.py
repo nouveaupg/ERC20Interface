@@ -239,7 +239,7 @@ class NodeInfo:
             self.total_rpc_calls += 1
             if "result" in response_data:
                 result_data = response_data["result"]
-                if result_data["number"] is None:
+                if result_data is None:
                     message = "getBlockByNumber API call: block still pending"
                     if self.logger:
                         self.logger.error(message)
