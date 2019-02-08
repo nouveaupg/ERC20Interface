@@ -115,7 +115,7 @@ class CommandModule:
             else:
                 self.logger.error("Unrecognized response from Node API endpoint: " + self.config["api_endpoint"])
         except URLError as err:
-            logger.error("URLError: {0}".format(URLError))
+            logger.error("URLError: {0}".format(err))
 
     def undirected_command(self):
         dispatch_undirected_url = self.config["api_endpoint"]
@@ -170,3 +170,13 @@ if __name__ == "__main__":
                 logger.info("Ending undirected command loop.")
         else:
             command_module.undirected_command()
+    elif mode == "directed_command":
+        if loop:
+            logger.info("Starting directed command loop.")
+            try:
+                while True:
+                    command_module.directed_command()
+            except NodeApiError:
+                logger.info("Ending directed command loop.")
+        else:
+            command_module.directed_command()
