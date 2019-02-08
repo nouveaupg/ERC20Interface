@@ -1,5 +1,6 @@
 from urllib.request import Request, urlopen, URLError
 from node_information import NodeInfo
+import erc20
 import ssl
 import sys
 import util
@@ -91,6 +92,30 @@ class CommandModule:
                     time.sleep(error_delay)
                     max_attempts -= 1
                     logger.info("Retrying request to Node API, {0} remaining".format(max_attempts))
+
+    def directed_command(self):
+        directed_dispatch_url = self.config["api_endpoint"]
+        directed_dispatch_url += "node_api/dispatch_directed_command/" + self.config["api_key"]
+        ssl_ctx = self.ssl_ctx
+        try:
+            response_data = json.load(urlopen(directed_dispatch_url, context=ssl_ctx))
+            if response_data["result"] == "OK":
+                command_data = response_data["command_data"]
+                if 'token_count' in command_data:
+                    token_name = command_data["token_name"]
+                    token_symbol = command_data["token_symbol"]
+                    token_count = command_data["token_count"]
+
+                    erc20contract = erc20.PublishERC20Contract(self.config, token_name, token_symbol, token_count)
+                    erc20contract.deploy()
+
+            elif response_data["result"] == "Error":
+                self.logger.error("Node API Error: {0}".format(response_data["error_message"]))
+                raise NodeApiError(response_data["error_message"])
+            else:
+                self.logger.error("Unrecognized response from Node API endpoint: " + self.config["api_endpoint"])
+        except URLError as err:
+            logger.error("URLError: {0}".format(URLError))
 
     def undirected_command(self):
         dispatch_undirected_url = self.config["api_endpoint"]
