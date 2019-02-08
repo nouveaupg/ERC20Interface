@@ -223,8 +223,8 @@ class CommandModule:
                         token_name = command_data["token_name"]
                         token_symbol = command_data["token_symbol"]
                         token_count = command_data["token_count"]
+                        contract_address = command_data["contract_address"]
                         self._publish_contract(token_name, token_symbol, token_count, command_id)
-                    contract_address = command_data["contract_address"]
                     if command_data['erc20_function'] == "burn":
                         token_count = command_data["token_count"]
                         gas_price = command_data["gas_price"]
