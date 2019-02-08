@@ -9,7 +9,7 @@ CONSOLE_LOG_LEVEL = logging.INFO
 FILE_LOG_LEVEL = logging.DEBUG
 
 # Change this to IPC for production
-web3 = Web3(Web3.HTTPProvider("http://10.0.0.7:8545"))
+web3 = Web3(Web3.HTTPProvider("http://10.0.0.8:8545"))
 
 
 def find_target_gas_price(max_gas_price_gwei):

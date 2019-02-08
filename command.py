@@ -36,9 +36,111 @@ class CommandModule:
         self.max_attempts = self.config['max_rpc_tries']
         self.ssl_ctx = ssl.SSLContext()
         self.ssl_ctx.load_default_certs()
+        self.command_id = 0
+
+    def _api_response(self, success, command_id, data):
+        config = self.config
+        if success:
+            output = dict(success=True,
+                          command_id=command_id,
+                          input=data)
+            api_endpoint_url = config["api_endpoint"] + "node_api/command_output/" + config["api_key"]
+            logger.debug("Making request to api_endpoint: " + api_endpoint_url)
+
+            req = Request(api_endpoint_url,
+                          data=json.dumps(output).encode('utf-8'),
+                          headers={'Content-Type': 'application/json',
+                                   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'},
+                          method="POST")
+            max_attempts = self.max_attempts
+            while max_attempts > 0:
+                try:
+                    urlopen(req, context=self.ssl_ctx)
+                    logger.info("Node information updated successfully.")
+                    break
+                except URLError as err:
+                    logger.error("Error from Node API update endpoint: {0}".format(err))
+                    error_delay = config['polling_interval']
+                    logger.info("Sleeping for {0} seconds".format(error_delay))
+                    time.sleep(error_delay)
+                    max_attempts -= 1
+                    logger.info("Retrying request to Node API, {0} remaining".format(max_attempts))
+        else:
+            output = dict(success=False,
+                          command_id=command_id,
+                          input="",
+                          error_message="Could not get block data. (might still be pending)")
+            endpoint_url = config["api_endpoint"] + "node_api/command_output/" + config["api_key"]
+            logger.debug("Making request to api_endpoint: " + endpoint_url)
+
+            req = Request(endpoint_url,
+                          data=json.dumps(output).encode('utf-8'),
+                          headers={'Content-Type': 'application/json',
+                                   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'},
+                          method="POST")
+
+            max_attempts = self.max_attempts
+            while max_attempts > 0:
+                try:
+                    urlopen(req, context=self.ssl_ctx)
+                    logger.info("Node information updated successfully.")
+                    break
+                except URLError as err:
+                    logger.error("URLError from Node API endpoint: {0}".format(err))
+                    error_delay = config['polling_interval']
+                    logger.info("Sleeping for {0} seconds".format(error_delay))
+                    time.sleep(error_delay)
+                    max_attempts -= 1
+                    logger.info("Retrying request to Node API, {0} remaining".format(max_attempts))
+
+    def _publish_contract(self, name, symbol, initial_supply, command_id):
+        config = self.config
+
+        new_contract = erc20.PublishERC20Contract(config, name, symbol, initial_supply)
+        contract_address = new_contract.deploy()
+
+        if contract_address:
+            self._api_response(True, command_id, contract_address)
+        else:
+            self._api_response(False, command_id, "Failed to create contract.")
+
+    def _burn_tokens(self, contract_address, tokens, gas_price, command_id):
+        config = self.config
+
+        contract = erc20.ExecuteERC20Contract(config, contract_address, self.logger)
+        result = False
+        if contract:
+            result = contract.burn_tokens(tokens, gas_price)
+
+        if result:
+            self._api_response(True, command_id, contract_address)
+        else:
+            self._api_response(False, command_id, "ERC20 burn command failed.")
+
+    def _total_supply(self, contract_address, command_id):
+        config = self.config
+
+        contract = erc20.ExecuteERC20Contract(config, contract_address, self.logger)
+        if contract:
+            result = contract.total_supply()
+            if result:
+                self._api_response(True, command_id, str(result))
+        self._api_response(False, command_id, "ERC20 total supply failed.")
+
+    def _transfer(self, contract_address, tokens, address, gas_price):
+        config = self.config
+        command_id = self.command_id
+
+        contract = erc20.ExecuteERC20Contract(config, contract_address, self.logger)
+        if contract:
+            result = contract.transfer(tokens, address, gas_price)
+            if result:
+                self._api_response(True, command_id, str(result))
+        self._api_response(False, command_id, "ERC20 transfer failed.")
 
     def _get_block_data(self, block_number, command_id):
         config = self.config
+
         block_data = self.node_info.get_block_data(block_number)
         if block_data:
             output = dict(success=True,
@@ -101,13 +203,17 @@ class CommandModule:
             response_data = json.load(urlopen(directed_dispatch_url, context=ssl_ctx))
             if response_data["result"] == "OK":
                 command_data = response_data["command_data"]
+                if 'command_id' in command_data:
+                    command_id = command_data["command_id"]
+                    self.command_id = command_id
+                else:
+                    self.logger.error("Node API Error: {0}".format("command_id not found in response_data"))
+                    raise NodeApiError("command_id not found in response_data")
                 if 'token_count' in command_data:
                     token_name = command_data["token_name"]
                     token_symbol = command_data["token_symbol"]
                     token_count = command_data["token_count"]
-
-                    erc20contract = erc20.PublishERC20Contract(self.config, token_name, token_symbol, token_count)
-                    erc20contract.deploy()
+                    self._publish_contract(token_name, token_symbol, token_count, command_id)
 
             elif response_data["result"] == "Error":
                 self.logger.error("Node API Error: {0}".format(response_data["error_message"]))
@@ -137,12 +243,13 @@ class CommandModule:
                 self.logger.error("Unrecognized response from Node API endpoint: " + self.config["api_endpoint"])
 
         except URLError as err:
-            logger.error("URLError: {0}".format(URLError))
+            logger.error("URLError: {0}".format(err))
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print(help)
+        exit(0)
     mode = sys.argv[1]
     loop = False
     if len(sys.argv) > 2:
