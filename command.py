@@ -218,12 +218,12 @@ class CommandModule:
                 else:
                     self.logger.error("Node API Error: {0}".format("command_id not found in response_data"))
                     raise NodeApiError("command_id not found in response_data")
-                if 'token_count' in command_data:
-                    token_name = command_data["token_name"]
-                    token_symbol = command_data["token_symbol"]
-                    token_count = command_data["token_count"]
-                    self._publish_contract(token_name, token_symbol, token_count, command_id)
                 if 'erc20_function' in command_data:
+                    if command_data['erc20_function'] == "publish":
+                        token_name = command_data["token_name"]
+                        token_symbol = command_data["token_symbol"]
+                        token_count = command_data["token_count"]
+                        self._publish_contract(token_name, token_symbol, token_count, command_id)
                     contract_address = command_data["contract_address"]
                     if command_data['erc20_function'] == "burn":
                         token_count = command_data["token_count"]
