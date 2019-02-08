@@ -117,8 +117,9 @@ class CommandModule:
         else:
             self._api_response(False, command_id, "ERC20 burn command failed.")
 
-    def _total_supply(self, contract_address, command_id):
+    def _total_supply(self, contract_address):
         config = self.config
+        command_id = self.command_id
 
         contract = erc20.ExecuteERC20Contract(config, contract_address, self.logger)
         if contract:
@@ -214,6 +215,19 @@ class CommandModule:
                     token_symbol = command_data["token_symbol"]
                     token_count = command_data["token_count"]
                     self._publish_contract(token_name, token_symbol, token_count, command_id)
+                if 'erc20_function' in command_data:
+                    contract_address = command_data["contract_address"]
+                    if command_data['erc20_function'] == "burn":
+                        token_count = command_data["token_count"]
+                        gas_price = command_data["gas_price"]
+                        self._burn_tokens(contract_address, token_count, gas_price)
+                    elif command_data['erc20_function'] == "transfer":
+                        token_count = command_data["token_count"]
+                        gas_price = command_data["gas_price"]
+                        address = command_data["address"]
+                        self._transfer(contract_address, token_count, address, gas_price)
+                    elif command_data['erc20_function'] == "total_supply":
+                        self._total_supply(contract_address)
 
             elif response_data["result"] == "Error":
                 self.logger.error("Node API Error: {0}".format(response_data["error_message"]))
