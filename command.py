@@ -100,7 +100,7 @@ class CommandModule:
         contract_address = new_contract.deploy()
 
         if contract_address:
-            self._api_response(True, command_id, contract_address)
+            self._api_response(True, command_id, {"new_contract_address": contract_address})
         else:
             self._api_response(False, command_id, "Failed to create contract.")
 
@@ -113,7 +113,10 @@ class CommandModule:
             result = contract.burn_tokens(tokens, gas_price)
 
         if result:
-            self._api_response(True, command_id, contract_address)
+            self._api_response(True, command_id, json.dumps({"erc20_function": "burn",
+                                                             "contract_address": contract_address,
+                                                             "tokens": tokens,
+                                                             "gas_price": gas_price}))
         else:
             self._api_response(False, command_id, "ERC20 burn command failed.")
 
@@ -125,7 +128,7 @@ class CommandModule:
         if contract:
             result = contract.total_supply()
             if result:
-                self._api_response(True, command_id, str(result))
+                self._api_response(True, command_id, json.dumps({"total_supply": result}))
         self._api_response(False, command_id, "ERC20 total supply failed.")
 
     def _transfer(self, contract_address, tokens, address, gas_price):
@@ -136,7 +139,12 @@ class CommandModule:
         if contract:
             result = contract.transfer(tokens, address, gas_price)
             if result:
-                self._api_response(True, command_id, str(result))
+                output = {"erc20_function": "transfer",
+                          "address": address,
+                          "gas_price": gas_price,
+                          "tokens": tokens,
+                          "contract_address": contract_address}
+                self._api_response(True, command_id, json.dumps(output))
         self._api_response(False, command_id, "ERC20 transfer failed.")
 
     def _get_block_data(self, block_number, command_id):
