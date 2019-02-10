@@ -223,18 +223,20 @@ class CommandModule:
                         token_name = command_data["token_name"]
                         token_symbol = command_data["token_symbol"]
                         token_count = command_data["token_count"]
-                        contract_address = command_data["contract_address"]
                         self._publish_contract(token_name, token_symbol, token_count, command_id)
                     if command_data['erc20_function'] == "burn":
+                        contract_address = command_data["contract_address"]
                         token_count = command_data["token_count"]
                         gas_price = command_data["gas_price"]
                         self._burn_tokens(contract_address, token_count, gas_price)
                     elif command_data['erc20_function'] == "transfer":
+                        contract_address = command_data["contract_address"]
                         token_count = command_data["token_count"]
                         gas_price = command_data["gas_price"]
                         address = command_data["address"]
                         self._transfer(contract_address, token_count, address, gas_price)
                     elif command_data['erc20_function'] == "total_supply":
+                        contract_address = command_data["contract_address"]
                         self._total_supply(contract_address)
 
             elif response_data["result"] == "Error":
