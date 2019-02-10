@@ -50,7 +50,7 @@ class CommandModule:
             req = Request(api_endpoint_url,
                           data=json.dumps(output).encode('utf-8'),
                           headers={'Content-Type': 'application/json',
-                                   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'},
+                                   'User-Agent': config['user_agent']},
                           method="POST")
             max_attempts = self.max_attempts
             while max_attempts > 0:
@@ -76,7 +76,7 @@ class CommandModule:
             req = Request(endpoint_url,
                           data=json.dumps(output).encode('utf-8'),
                           headers={'Content-Type': 'application/json',
-                                   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'},
+                                   'User-Agent': config['user_agent']},
                           method="POST")
 
             max_attempts = self.max_attempts
@@ -93,19 +93,22 @@ class CommandModule:
                     max_attempts -= 1
                     logger.info("Retrying request to Node API, {0} remaining".format(max_attempts))
 
-    def _publish_contract(self, name, symbol, initial_supply, command_id):
+    def _publish_contract(self, name, symbol, initial_supply, command_id, token_id):
         config = self.config
 
         new_contract = erc20.PublishERC20Contract(config, name, symbol, initial_supply)
         contract_address = new_contract.deploy()
 
         if contract_address:
-            self._api_response(True, command_id, json.dumps({"new_contract_address": contract_address}))
+            self._api_response(True, command_id, json.dumps({"new_contract_address": contract_address,
+                                                             "token_id": token_id}))
         else:
-            self._api_response(False, command_id, "Failed to create contract.")
+            self._api_response(False, command_id, json.dumps({"error_message": "Failed to create contract.",
+                                                              "token_id": token_id}))
 
-    def _burn_tokens(self, contract_address, tokens, gas_price, command_id):
+    def _burn_tokens(self, contract_address, tokens, gas_price, token_id):
         config = self.config
+        command_id = self.command_id
 
         contract = erc20.ExecuteERC20Contract(config, contract_address, self.logger)
         result = False
@@ -116,11 +119,13 @@ class CommandModule:
             self._api_response(True, command_id, json.dumps({"erc20_function": "burn",
                                                              "contract_address": contract_address,
                                                              "tokens": tokens,
+                                                             "token_id": token_id,
                                                              "gas_price": gas_price}))
         else:
-            self._api_response(False, command_id, "ERC20 burn command failed.")
+            self._api_response(False, command_id, {"error_message": "ERC20 burn command failed.",
+                                                   "token_id": token_id})
 
-    def _total_supply(self, contract_address):
+    def _total_supply(self, contract_address, token_id):
         config = self.config
         command_id = self.command_id
 
@@ -128,10 +133,12 @@ class CommandModule:
         if contract:
             result = contract.total_supply()
             if result:
-                self._api_response(True, command_id, json.dumps({"total_supply": result}))
-        self._api_response(False, command_id, "ERC20 total supply failed.")
+                self._api_response(True, command_id, json.dumps({"total_supply": result,
+                                                                 "token_id": token_id}))
+        self._api_response(False, command_id, {"error_message": "ERC20 total supply failed.",
+                                               "token_id": token_id})
 
-    def _transfer(self, contract_address, tokens, address, gas_price):
+    def _transfer(self, contract_address, tokens, address, gas_price, token_id):
         config = self.config
         command_id = self.command_id
 
@@ -143,9 +150,11 @@ class CommandModule:
                           "address": address,
                           "gas_price": gas_price,
                           "tokens": tokens,
+                          "token_id": token_id,
                           "contract_address": contract_address}
                 self._api_response(True, command_id, json.dumps(output))
-        self._api_response(False, command_id, "ERC20 transfer failed.")
+        self._api_response(False, command_id, {"error_message": "ERC20 transfer failed.",
+                                               "token_id": token_id})
 
     def _get_block_data(self, block_number, command_id):
         config = self.config
@@ -161,7 +170,7 @@ class CommandModule:
             req = Request(api_endpoint_url,
                           data=json.dumps(output).encode('utf-8'),
                           headers={'Content-Type': 'application/json',
-                                   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'},
+                                   'User-Agent': config['user_agent']},
                           method="POST")
             max_attempts = self.max_attempts
             while max_attempts > 0:
@@ -187,7 +196,7 @@ class CommandModule:
             req = Request(endpoint_url,
                           data=json.dumps(output).encode('utf-8'),
                           headers={'Content-Type': 'application/json',
-                                   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'},
+                                   'User-Agent': config['user_agent']},
                           method="POST")
 
             max_attempts = self.max_attempts
@@ -223,21 +232,25 @@ class CommandModule:
                         token_name = command_data["token_name"]
                         token_symbol = command_data["token_symbol"]
                         token_count = command_data["token_count"]
-                        self._publish_contract(token_name, token_symbol, token_count, command_id)
+                        token_id = command_data["token_id"]
+                        self._publish_contract(token_name, token_symbol, token_count, command_id, token_id)
                     if command_data['erc20_function'] == "burn":
                         contract_address = command_data["contract_address"]
                         token_count = command_data["token_count"]
                         gas_price = command_data["gas_price"]
-                        self._burn_tokens(contract_address, token_count, gas_price)
+                        token_id = command_data["token_id"]
+                        self._burn_tokens(contract_address, token_count, gas_price, token_id)
                     elif command_data['erc20_function'] == "transfer":
                         contract_address = command_data["contract_address"]
                         token_count = command_data["token_count"]
                         gas_price = command_data["gas_price"]
                         address = command_data["address"]
-                        self._transfer(contract_address, token_count, address, gas_price)
+                        token_id = command_data["token_id"]
+                        self._transfer(contract_address, token_count, address, gas_price, token_id)
                     elif command_data['erc20_function'] == "total_supply":
                         contract_address = command_data["contract_address"]
-                        self._total_supply(contract_address)
+                        token_id = command_data["token_id"]
+                        self._total_supply(contract_address, token_id)
 
             elif response_data["result"] == "Error":
                 self.logger.error("Node API Error: {0}".format(response_data["error_message"]))
@@ -280,7 +293,7 @@ if __name__ == "__main__":
         if sys.argv[2] == "loop":
             loop = True
 
-    logger = logging.getLogger("Command Executor v1")
+    logger = logging.getLogger("Command Executor v2")
     logger.setLevel(logging.INFO)
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)

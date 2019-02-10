@@ -1,9 +1,12 @@
-{"log_file":"/tmp/erc20.log",
-"abi":"/home/ethereum/ERC20Interface/config/erc20.abi",
-"bin":"/home/ethereum/ERC20Interface/config/erc20.bin",
-"api_endpoint":"http://10.0.0.13/",
-"account_password":"winces9135.morphology",
-"api_key":"750adc4d07b3cb2ea2442688f4ed94f7",
-"ipc_address":"/home/ethereum/.ethereum/geth.ipc",
-"max_rpc_tries":5,
-"polling_interval":30}
+{
+  "log_file": "erc20.log",
+  "abi": "config/erc20.abi",
+  "bin": "config/erc20.bin",
+  "api_endpoint": "http://10.0.0.10/",
+  "account_password": "winces9135.morphology",
+  "api_key": "750adc4d07b3cb2ea2442688f4ed94f7",
+  "ipc_address": "/home/ethereum/.ethereum/geth.ipc",
+  "max_rpc_tries": 5,
+  "polling_interval": 30,
+  "user_agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
+}
