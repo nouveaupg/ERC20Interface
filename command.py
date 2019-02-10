@@ -100,7 +100,7 @@ class CommandModule:
         contract_address = new_contract.deploy()
 
         if contract_address:
-            self._api_response(True, command_id, {"new_contract_address": contract_address})
+            self._api_response(True, command_id, json.dumps({"new_contract_address": contract_address}))
         else:
             self._api_response(False, command_id, "Failed to create contract.")
 

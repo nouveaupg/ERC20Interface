@@ -200,17 +200,21 @@ class PublishERC20Contract(LoggingBase):
 
         erc20_contract = web3.eth.contract(abi=self.erc20abi, bytecode=self.erc20bin["object"])
         self.log_message("Instantiated Ethereum contract")
-        gas_estimate = erc20_contract.constructor(self.name,
-                                                  self.symbol,
-                                                  self.initial_supply).estimateGas()
+        gas_estimate = erc20_contract.constructor(self.initial_supply,
+                                                  self.name,
+                                                  self.symbol).estimateGas()
 
         super().log_message("Gas estimate: {0}".format(gas_estimate))
-        self.tx_hash = erc20_contract.constructor(self.name,
-                                                  self.symbol,
-                                                  self.initial_supply).transact()
+        self.tx_hash = erc20_contract.constructor(self.initial_supply,
+                                                  self.name,
+                                                  self.symbol).transact()
 
         super().log_message("Received tx_hash: {0}, waiting for receipt...".format(self.tx_hash))
-        self.tx_receipt = web3.eth.waitForTransactionReceipt(self.tx_hash)
+        try:
+            self.tx_receipt = web3.eth.waitForTransactionReceipt(self.tx_hash)
+        except web3.utils.threads.Timeout:
+            super().log_message("Received timeout, retrying...")
+            self.tx_receipt = web3.eth.waitForTransactionReceipt(self.tx_hash)
 
         super().log_message("Received transaction receipt, contract address: {0}".format(
             self.tx_receipt.contractAddress))
