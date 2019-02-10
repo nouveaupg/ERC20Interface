@@ -234,7 +234,7 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     # create file handler which logs even debug messages
     fh = logging.FileHandler(config_data['log_file'])
-    fh.setLevel(logging.DEBUG)
+    fh.setLevel(logging.INFO)
     # create console handler with a higher log level
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
