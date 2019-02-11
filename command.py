@@ -100,7 +100,8 @@ class CommandModule:
         contract_address = new_contract.deploy()
 
         if contract_address:
-            self._api_response(True, command_id, json.dumps({"new_contract_address": contract_address,
+            self._api_response(True, command_id, json.dumps({"erc20_function": "publish",
+                                                             "new_contract_address": contract_address,
                                                              "token_id": token_id}))
         else:
             self._api_response(False, command_id, json.dumps({"error_message": "Failed to create contract.",
@@ -324,3 +325,7 @@ if __name__ == "__main__":
                 logger.info("Ending directed command loop.")
         else:
             command_module.directed_command()
+    elif mode == "test":
+        command_module._api_response(True, 437847, json.dumps({"erc20_function": "publish",
+                                                               "new_contract_address": "0x300DEDA0155D4713C690128a5b36a33d0E359817",
+                                                               "token_id": 4}))
