@@ -210,9 +210,11 @@ class PublishERC20Contract(LoggingBase):
                                                   self.symbol).transact()
 
         super().log_message("Received tx_hash: {0}, waiting for receipt...".format(self.tx_hash))
-        while:
+        while 1:
             try:
                 self.tx_receipt = web3.eth.waitForTransactionReceipt(self.tx_hash)
+                if self.tx_receipt
+                    break
             except:
                 super().log_message("Received timeout, retrying...")
                 continue
